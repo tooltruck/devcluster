@@ -91,7 +91,7 @@ class StageConfig(metaclass=abc.ABCMeta):
         # required = set()
 
         assert isinstance(config, dict), "StageConfig must be a dictionary with a single key"
-        assert len(config), "StageConfig must be a dictionary with a single key"
+        assert len(config) == 1, "StageConfig must be a dictionary with a single key"
         typ, val = next(iter(config.items()))
         assert typ in allowed, f"{typ} is not one of {allowed}"
 
@@ -127,7 +127,7 @@ class AtomicConfig(metaclass=abc.ABCMeta):
         # required = set()
 
         assert isinstance(config, dict), "AtomicConfig must be a dictionary with a single key"
-        assert len(config), "AtomicConfig must be a dictionary with a single key"
+        assert len(config) == 1, "AtomicConfig must be a dictionary with a single key"
         typ, val = next(iter(config.items()))
         assert typ in allowed, f"{typ} is not one of {allowed}"
 
@@ -475,7 +475,7 @@ class CustomConfig(StageConfig):
         self.name = check_string(config["name"], "CustomConfig.name must be a string")
 
         self.env = config.get("env", {})
-        check_dict_with_string_keys(self.env, "CustomConfig.pre must be a list of dicts")
+        check_dict_with_string_keys(self.env, "CustomConfig.env must be a list of dicts")
 
         self.cwd = read_path(config.get("cwd"))
         if self.cwd is not None:
