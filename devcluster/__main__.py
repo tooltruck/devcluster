@@ -171,7 +171,7 @@ def main() -> None:
 
     env = dict(os.environ)
 
-    if "DOCKER_LOCALHOST" in env or not args.no_guess_host:
+    if not ("DOCKER_LOCALHOST" in env or args.no_guess_host):
         docker_localhost = get_host_addr_for_docker()
         if docker_localhost is None:
             print(
