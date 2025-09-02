@@ -4,7 +4,7 @@ import os
 import signal
 import subprocess
 import time
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 import devcluster as dc
 
@@ -15,7 +15,7 @@ CommandEndCB = Callable[["Command"], None]
 class Command:
     def __init__(
         self,
-        command: Union[str, List[str]],
+        command: str | List[str],
         logger: dc.Logger,
         poll: dc.Poll,
         end_cb: CommandEndCB,
@@ -37,8 +37,8 @@ class Command:
             stderr=subprocess.PIPE,
         )
         assert self.p.stdout and self.p.stderr
-        self.out = self.p.stdout.fileno()  # type: Optional[int]
-        self.err = self.p.stderr.fileno()  # type: Optional[int]
+        self.out: int | None = self.p.stdout.fileno()
+        self.err: int | None = self.p.stderr.fileno()
         self.poll.register(self.out, dc.Poll.IN_FLAGS, self._handle_out)
         self.poll.register(self.err, dc.Poll.IN_FLAGS, self._handle_err)
 
@@ -132,7 +132,7 @@ class Status:
 
 StatusCB = Callable[[Status], None]
 ReportCB = Callable[[], None]
-KillRequest = Tuple[int, Optional[signal.Signals]]
+KillRequest = Tuple[int, signal.Signals | None]
 
 
 class StateMachineHandle:
@@ -143,7 +143,7 @@ class StateMachineHandle:
     def __init__(
         self,
         set_target_or_restart: Callable[[int], None],
-        run_command: Callable[[str], None],
+        run_command: Callable[[str | List[str]], None],
         quit_cb: Callable[[], None],
         dump_state: Callable[[], None],
         kill_stage: Callable[[int], None],
@@ -172,7 +172,7 @@ class StateMachine:
 
         # atomic_op is intermediate steps like calling `make` or connecting to a server.
         # We only support having one run at a time (since they're atomic...)
-        self.atomic_op = None  # type: Optional[dc.AtomicOperation]
+        self.atomic_op: dc.AtomicOperation | None = None
 
         # the pipe is used by the atomic_op to pass messages to the poll loop
         self.pipe_rd, self.pipe_wr = os.pipe()
@@ -180,13 +180,13 @@ class StateMachine:
         dc.nonblock(self.pipe_wr)
         poll.register(self.pipe_rd, dc.Poll.IN_FLAGS, self.handle_pipe)
 
-        self.stages = [dc.DeadStage(self)]  # type: List[dc.Stage]
+        self.stages: List[dc.Stage] = [dc.DeadStage(self)]
         # state is the current stage we are running
         self.state = 0
         # target is the stage the user has requested we run
         self.target = 0
         # standing_up is the stage we are standing up (there is only one at a time)
-        self.standing_up = None  # type: Optional[int]
+        self.standing_up: int | None = None
         # when somebody sets the target state to something lower than standing_up, we
         # cancel the currently standing_up as it is no longer wanted.  We can't infer
         # that case though, because the devcluster API lets you restart things in
@@ -204,19 +204,19 @@ class StateMachine:
         self.stage_up = [False]
 
         # we queue up restart requests to handle them one at a time.
-        self.want_restarts = []  # type: List[int]
+        self.want_restarts: List[int] = []
 
         # we sometimes queue up kill requests because it's not always safe to kill immediately
-        self.want_kills = []  # type: List[KillRequest]
+        self.want_kills: List[KillRequest] = []
 
-        self.old_status = None  # type: Any
+        self.old_status: Any = None
 
-        self.callbacks = []  # type: List[StatusCB]
+        self.callbacks: List[StatusCB] = []
 
-        self.report_callbacks = {}  # type: Dict[str, ReportCB]
+        self.report_callbacks: Dict[str, ReportCB] = {}
 
         # commands maps the UI key to the command
-        self.commands = {}  # type: Dict[str, Command]
+        self.commands: Dict[str, Command] = {}
 
     def dump_state(self) -> None:
         """Useful for debugging the state machine if the state machine deadlocks."""
@@ -242,26 +242,27 @@ class StateMachine:
         }
         self.logger.log("state_machine: " + json.dumps(state, indent="  ") + "\n")
 
-    def run_command(self, cmd_str: str) -> None:
+    def run_command(self, cmd_spec: str | List[str]) -> None:
         if self.quitting:
             msg = "ignoring command while we are quitting\n"
             self.logger.log(dc.fore_num(3) + dc.asbytes(msg) + dc.res)
             return
-        if cmd_str in self.commands:
-            msg = f"command {cmd_str} is still running, please wait...\n"
+        cmd_key = cmd_spec if isinstance(cmd_spec, str) else subprocess.list2cmdline(cmd_spec)
+        if cmd_key in self.commands:
+            msg = f"command {cmd_key} is still running, please wait...\n"
             self.logger.log(dc.fore_num(3) + dc.asbytes(msg) + dc.res)
             return
 
         try:
             command = Command(
-                cmd_str,
+                cmd_spec,
                 self.logger,
                 self.poll,
                 self.command_end,
             )
         except FileNotFoundError as e:
             self.logger.log(dc.fore_num(1) + dc.asbytes(str(e)) + dc.res)
-        self.commands[cmd_str] = command
+        self.commands[cmd_key] = command
 
     def command_end(self, command: Command) -> None:
         for key in self.commands:
@@ -502,7 +503,7 @@ class StateMachine:
         self.want_restarts.append(target)
         self.next_thing()
 
-    def kill_stage(self, target: int, sig: Optional[signal.Signals] = None) -> None:
+    def kill_stage(self, target: int, sig: signal.Signals | None = None) -> None:
         self.want_kills.append((target, sig))
         self.next_thing()
 

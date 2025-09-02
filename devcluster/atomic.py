@@ -5,7 +5,7 @@ import threading
 import time
 import socket
 import subprocess
-from typing import Any, Callable, List, Optional, Sequence, Union
+from typing import Any, Callable, List, Sequence
 
 import devcluster as dc
 
@@ -90,7 +90,7 @@ class LogCheck(AtomicOperation):
         logger: dc.Logger,
         stream: str,
         report_fd: int,
-        regex: Union[str, bytes],
+        regex: str | bytes,
     ):
         self.logger = logger
         self.stream = stream
@@ -146,21 +146,21 @@ class AtomicSubprocess(AtomicOperation):
         self.report_fd = report_fd
         self.quiet = quiet
         self.callbacks = callbacks
-        self.captured_stdout = []  # type: List[bytes]
+        self.captured_stdout: List[bytes] = []
 
         self.start_time = time.time()
 
         self.dying = False
-        self.proc = subprocess.Popen(
+        self.proc: subprocess.Popen | None = subprocess.Popen(
             cmd,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        )  # type: Optional[subprocess.Popen]
+        )
         assert self.proc.stdout
-        self.out = self.proc.stdout.fileno()  # type: Optional[int]
+        self.out: int | None = self.proc.stdout.fileno()
         assert self.proc.stderr
-        self.err = self.proc.stderr.fileno()  # type: Optional[int]
+        self.err: int | None = self.proc.stderr.fileno()
 
         if self.out is not None:
             dc.nonblock(self.out)

@@ -1,7 +1,7 @@
 import base64
 import os
 import time
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import devcluster as dc
 
@@ -32,14 +32,14 @@ class Logger:
     def __init__(
         self,
         streams: List[str],
-        log_dir: Optional[str],
-        init_streams: Optional[Streams] = None,
-        init_index: Optional[Dict[int, str]] = None,
+        log_dir: str | None,
+        init_streams: Streams | None = None,
+        init_index: Dict[int, str] | None = None,
     ):
         all_streams = ["console"] + streams
 
         if init_streams is None:
-            self.streams = {stream: [] for stream in all_streams}  # type: Streams
+            self.streams: Streams = {stream: [] for stream in all_streams}
         else:
             self.streams = init_streams
 
@@ -48,7 +48,7 @@ class Logger:
         else:
             self.index = init_index
 
-        self.callbacks = []  # type: List[LogCB]
+        self.callbacks: List[LogCB] = []
 
         self.log_dir = log_dir
         if log_dir is not None:

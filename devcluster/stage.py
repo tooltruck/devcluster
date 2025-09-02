@@ -4,7 +4,7 @@ import selectors
 import signal
 import subprocess
 import time
-from typing import Any, List, Optional
+from typing import Any, List
 
 import devcluster as dc
 
@@ -28,7 +28,7 @@ class Stage:
         return self.running()
 
     @abc.abstractmethod
-    def kill(self, sig: Optional[signal.Signals] = None) -> None:
+    def kill(self, sig: signal.Signals | None = None) -> None:
         pass
 
     @abc.abstractmethod
@@ -36,12 +36,12 @@ class Stage:
         pass
 
     @abc.abstractmethod
-    def get_precommand(self) -> Optional[dc.AtomicOperation]:
+    def get_precommand(self) -> dc.AtomicOperation | None:
         """Return the next AtomicOperation or None, at which point it is safe to run_command)."""
         pass
 
     @abc.abstractmethod
-    def get_postcommand(self) -> Optional[dc.AtomicOperation]:
+    def get_postcommand(self) -> dc.AtomicOperation | None:
         """Return the next AtomicOperation or None, at which point the command is up."""
         pass
 
@@ -67,17 +67,17 @@ class DeadStage(Stage):
     def crashed(self) -> bool:
         return False
 
-    def kill(self, sig: Optional[signal.Signals] = None) -> None:
+    def kill(self, sig: signal.Signals | None = None) -> None:
         self._running = False
         self.state_machine.next_thing()
 
     def reset(self) -> None:
         pass
 
-    def get_precommand(self) -> Optional[dc.AtomicOperation]:
+    def get_precommand(self) -> dc.AtomicOperation | None:
         pass
 
-    def get_postcommand(self) -> Optional[dc.AtomicOperation]:
+    def get_postcommand(self) -> dc.AtomicOperation | None:
         pass
 
     def log_name(self) -> str:
@@ -98,9 +98,9 @@ class BaseProcess(Stage, metaclass=abc.ABCMeta):
         pre: List[dc.AtomicConfig],
         post: List[dc.AtomicConfig],
     ) -> None:
-        self.proc = None  # type: Optional[subprocess.Popen]
-        self.out = None  # type: Optional[int]
-        self.err = None  # type: Optional[int]
+        self.proc: subprocess.Popen | None = None
+        self.out: int | None = None
+        self.err: int | None = None
         self.dying = False
 
         self.poll = poll
@@ -160,7 +160,7 @@ class BaseProcess(Stage, metaclass=abc.ABCMeta):
             self.err = None
             self._maybe_wait()
 
-    def get_precommand(self) -> Optional[dc.AtomicOperation]:
+    def get_precommand(self) -> dc.AtomicOperation | None:
         if self.precmds_run < len(self.pre):
             precmd_config = self.pre[self.precmds_run]
             self.precmds_run += 1
@@ -173,7 +173,7 @@ class BaseProcess(Stage, metaclass=abc.ABCMeta):
             )
         return None
 
-    def get_postcommand(self) -> Optional[dc.AtomicOperation]:
+    def get_postcommand(self) -> dc.AtomicOperation | None:
         if self.postcmds_run < len(self.post):
             postcmd_config = self.post[self.postcmds_run]
             self.postcmds_run += 1
@@ -248,7 +248,7 @@ class Process(BaseProcess):
             self.proc.pid, " ".join(self.config.cmd), self.config.kill_signal
         )
 
-    def kill(self, sig: Optional[signal.Signals] = None) -> None:
+    def kill(self, sig: signal.Signals | None = None) -> None:
         # kill via signal
         self.dying = True
         assert self.proc
@@ -288,7 +288,7 @@ class DockerProcess(BaseProcess):
                 self.container_id, self.config.kill_signal
             )
 
-    def get_precommand(self) -> Optional[dc.AtomicOperation]:
+    def get_precommand(self) -> dc.AtomicOperation | None:
         # Inherit the precmds behavior from Process.
         precmd = super().get_precommand()
         if precmd is not None:
@@ -343,7 +343,7 @@ class DockerProcess(BaseProcess):
 
         self.process_tracker.report_pid_started(self.proc.pid, " ".join(cmd), "SIGKILL")
 
-    def docker_wait(self, timeout: Optional[float] = None) -> int:
+    def docker_wait(self, timeout: float | None = None) -> int:
         # Wait for the container.
         self.docker_started = False
 
@@ -446,7 +446,7 @@ class DockerProcess(BaseProcess):
 
         return self.docker_wait()
 
-    def kill(self, sig: Optional[signal.Signals] = None) -> None:
+    def kill(self, sig: signal.Signals | None = None) -> None:
         self.dying = True
         sigstr = self.config.kill_signal if sig is None else str(sig.value)
         kill_cmd = [

@@ -5,7 +5,7 @@ import termios
 import subprocess
 import select
 import sys
-from typing import Any, Callable, Dict, Iterator, Union
+from typing import Any, Callable, Dict, Iterator
 
 
 class ImpossibleException(Exception):
@@ -14,7 +14,7 @@ class ImpossibleException(Exception):
     pass
 
 
-Text = Union[str, bytes]
+Text = str | bytes
 
 
 def asbytes(msg: Text) -> bytes:
@@ -109,9 +109,9 @@ class Poll:
 
     def __init__(self) -> None:
         # Maps file descriptors to handler functions.
-        self.handlers = {}  # type: Dict[int, Handler]
+        self.handlers: Dict[int, Handler] = {}
         # Maps handlers back to file descriptors.
-        self.fds = {}  # type: Dict[Handler, int]
+        self.fds: Dict[Handler, int] = {}
         self._poll = select.poll()
 
     def register(self, fd: int, flags: int, handler: Handler) -> None:
