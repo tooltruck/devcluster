@@ -2,7 +2,7 @@ import os
 import time
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List
 
 import devcluster as dc
 
@@ -104,7 +104,7 @@ class Console:
         # Cycle through marker colors.
         self.marker_color = 0
 
-        self.last_bar_state = None  # type: Any
+        self.last_bar_state: Any = None
 
     def start(self) -> None:
         self.redraw()
@@ -165,7 +165,7 @@ class Console:
             os.write(sys.stdout.fileno(), b"\x1b[3r")
         self.redraw()
 
-    def set_stream(self, stream: Union[str, int], val: Optional[int]) -> None:
+    def set_stream(self, stream: str | int, val: int | None) -> None:
         if isinstance(stream, int):
             stream = self.logger.index[stream]
 
@@ -269,7 +269,7 @@ class Console:
         # customizable commands
         elif key in self.command_configs:
             cmdstr = self.command_configs[key].command
-            if not cmdstr.startswith(":"):
+            if not isinstance(cmdstr, str) or not cmdstr.startswith(":"):
                 self.state_machine_handle.run_command(cmdstr)
             else:
                 # Console action.

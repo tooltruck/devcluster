@@ -11,7 +11,7 @@ import sys
 import tempfile
 import threading
 import time
-from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Set, Union
+from typing import Any, Callable, Dict, Iterator, List, Sequence, Set
 
 import yaml
 
@@ -33,7 +33,7 @@ class StageError(Exception):
     pass
 
 
-Event = Union[dc.Log, dc.Status]
+Event = dc.Log | dc.Status
 EventCB = Callable[[Event], None]
 
 
@@ -47,9 +47,9 @@ class Devcluster:
 
     def __init__(
         self,
-        config: Union[str, Dict[str, Any]],
-        initial_target_stage: Union[int, str] = 0,
-        env: Optional[Dict[str, str]] = None,
+        config: str | Dict[str, Any],
+        initial_target_stage: int | str = 0,
+        env: Dict[str, str] | None = None,
         event_cbs: Sequence[EventCB] = (),
     ) -> None:
         self._env = env
@@ -65,22 +65,22 @@ class Devcluster:
 
         cfg = dc.Config(self._config_dict)
         self._stage_names = ["dead"] + [stage.name.lower() for stage in cfg.stages]
-        self._stage_map = {
+        self._stage_map: Dict[str | int, int] = {
             name: i for i, name in enumerate(self._stage_names)
-        }  # type: Dict[Union[str, int], int]
+        }
         self._stage_map.update({i: i for i in range(len(self._stage_names))})
-        self._target_map = dict(enumerate(self._stage_names))  # type: Dict[Union[str, int], str]
+        self._target_map: Dict[str | int, str] = dict(enumerate(self._stage_names))
         self._target_map.update({name: name for i, name in enumerate(self._stage_names)})
 
-        self._tmp = None  # type: Optional[str]
-        self._proc = None  # type: Optional[subprocess.Popen]
-        self._sock = None  # type: Optional[socket.socket]
+        self._tmp: str | None = None
+        self._proc: subprocess.Popen | None = None
+        self._sock: socket.socket | None = None
         self._sock_failed = False
-        self._conn_thread = None  # type: Optional[threading.Thread]
+        self._conn_thread: threading.Thread | None = None
 
         self._lock = threading.Lock()
-        self._status = None  # type: Optional[dc.Status]
-        self._queues = set()  # type: Set[queue.Queue]
+        self._status: dc.Status | None = None
+        self._queues: Set[queue.Queue] = set()
         self._event_cbs = event_cbs
 
     @property
@@ -243,7 +243,7 @@ class Devcluster:
     def __exit__(self, *_: Any) -> None:
         self.close()
 
-    def _event_cb(self, event: Optional[Event]) -> None:
+    def _event_cb(self, event: Event | None) -> None:
         with self._lock:
             queues = list(self._queues)
         for q in queues:
@@ -265,8 +265,8 @@ class Devcluster:
     @contextlib.contextmanager
     def wait_for_event(
         self,
-        condition: Callable[[Union[dc.Log, dc.Status]], bool],
-        timeout: Optional[float],
+        condition: Callable[[dc.Log | dc.Status], bool],
+        timeout: float | None,
     ) -> Iterator[None]:
         """
         Wait for the provided condition function to return True, checking against
@@ -279,7 +279,7 @@ class Devcluster:
         Raises:
           - TimeoutError if timeout is provided and is exceeded
         """
-        q = queue.Queue()  # type: queue.Queue
+        q: queue.Queue = queue.Queue()
         with self._lock:
             self._queues.add(q)
             # We always want to check against current status first.
@@ -324,9 +324,9 @@ class Devcluster:
 
     def set_target(
         self,
-        target: Union[int, str],
+        target: int | str,
         wait: bool = True,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ) -> None:
         """
         Set a target state for the cluster.
@@ -359,9 +359,9 @@ class Devcluster:
 
     def restart_stage(
         self,
-        target: Union[int, str],
+        target: int | str,
         wait: bool = True,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ) -> None:
         """
         Start/Restart a stage of the cluster.
@@ -401,10 +401,10 @@ class Devcluster:
 
     def kill_stage(
         self,
-        target: Union[int, str],
-        signal: Optional[_signal.Signals] = None,
+        target: int | str,
+        signal: _signal.Signals | None = None,
         wait: bool = True,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ) -> None:
         """
         Kill a stage of the cluster.
@@ -435,10 +435,10 @@ class Devcluster:
     @contextlib.contextmanager
     def wait_for_stage_log(
         self,
-        stage: Union[int, str],
+        stage: int | str,
         regex: bytes,
         ignore_crashes: bool = False,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         verbose: bool = False,
     ) -> Iterator[None]:
         """
@@ -479,7 +479,7 @@ class Devcluster:
     def wait_for_console_log(
         self,
         regex: bytes,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         verbose: bool = False,
     ) -> Iterator[None]:
         """

@@ -7,7 +7,7 @@ import os
 import subprocess
 import re
 import sys
-from typing import Iterator, no_type_check, Optional, Sequence
+from typing import Iterator, no_type_check, Sequence
 
 import appdirs
 import yaml
@@ -19,7 +19,7 @@ import devcluster as dc
 @no_type_check
 def _get_example_yaml() -> bytes:
     try:
-        from importlib.resources import files  # type: ignore
+        from importlib.resources import files
 
         ref = files("devcluster").joinpath("example.yaml")
         with ref.open("rb") as f:
@@ -48,7 +48,7 @@ def lockfile(filename: str) -> Iterator[None]:
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
-def get_host_addr_for_docker() -> Optional[str]:
+def get_host_addr_for_docker() -> str | None:
     if "darwin" in sys.platform:
         # On macOS, docker runs in a VM and host.docker.internal points to the IP
         # address of this VM.
@@ -70,7 +70,7 @@ def get_host_addr_for_docker() -> Optional[str]:
     return None
 
 
-def maybe_install_default_config() -> Optional[str]:
+def maybe_install_default_config() -> str | None:
     # Don't bother asking the user if the user isn't able to tell us.
     if not sys.stdin.isatty():
         return None

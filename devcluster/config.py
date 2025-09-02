@@ -3,7 +3,7 @@ import re
 import os
 import signal
 import string
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Set
 
 import yaml
 
@@ -63,7 +63,7 @@ def read_kill_signal(config: Dict[str, Any], config_kind: str) -> str:
     return s
 
 
-def read_path(path: Optional[str]) -> Optional[str]:
+def read_path(path: str | None) -> str | None:
     """Expand ~'s in a non-None path."""
     if path is None:
         return None
@@ -163,7 +163,7 @@ class ElasticConfig(StageConfig):
             "cmdline",
             "post",
         }
-        required = set()  # type: Set[str]
+        required: Set[str] = set()
         check_keys(allowed, required, config, type(self).__name__)
 
         self.api_port = int(config.get("api_port", 9200))
@@ -248,7 +248,7 @@ class DBConfig(StageConfig):
             "cmdline",
             "post",
         }
-        required = set()  # type: Set[str]
+        required: Set[str] = set()
         check_keys(allowed, required, config, type(self).__name__)
 
         self.port = int(config.get("port", 5432))
@@ -304,7 +304,7 @@ class DBConfig(StageConfig):
 class MasterConfig(StageConfig):
     def __init__(self, config: Any, temp_dir: str) -> None:
         allowed = {"pre", "post", "cmdline", "config_file", "name", "kill_signal"}
-        required = set()  # type: Set[str]
+        required: Set[str] = set()
         check_keys(allowed, required, config, type(self).__name__)
 
         self.config_file = config.get("config_file", {})
@@ -358,7 +358,7 @@ class MasterConfig(StageConfig):
 class AgentConfig(StageConfig):
     def __init__(self, config: Any, temp_dir: str) -> None:
         allowed = {"pre", "cmdline", "config_file", "name", "kill_signal"}
-        required = set()  # type: Set[str]
+        required: Set[str] = set()
         check_keys(allowed, required, config, type(self).__name__)
 
         self.config_file = config.get("config_file", {})
@@ -537,7 +537,7 @@ class CustomDockerConfig(StageConfig):
 
 
 class CommandConfig:
-    def __init__(self, command: str) -> None:
+    def __init__(self, command: str | List[str]) -> None:
         self.command = command
 
     @staticmethod
@@ -567,7 +567,7 @@ class Config:
         self.startup_input = config.get("startup_input", "")
 
         commands = config.get("commands", {})
-        check_dict_with_string_keys(commands, "commands must be a dict of strings")
+        check_dict_with_string_keys(commands, "commands must be a dict")
         self.commands = {k: CommandConfig.read(v) for k, v in commands.items()}
 
         self.cwd = read_path(config.get("cwd"))

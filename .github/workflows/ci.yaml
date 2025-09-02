@@ -1,0 +1,47 @@
+name: ci
+on: [push]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      ## setup ##
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: install pip dependencies
+        run: pip install -r requirements.txt
+      ## lint ##
+      - name: lint
+        run: make check
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      ## setup ##
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: install pip dependencies
+        run: pip install -r requirements.txt
+      ## test ##
+      - name: test
+        run: make test
+      ## export logs ##
+      - name: console log
+        run: cat /tmp/devcluster/console.log
+        if: always()
+      - name: db log
+        run: cat /tmp/devcluster/db.log
+        if: always()
+      - name: master log
+        run: cat /tmp/devcluster/master.log
+        if: always()
+      - name:
+        run: cat /tmp/devcluster/agent.log
+        if: always()

@@ -7,7 +7,7 @@ import signal
 import socket
 import sys
 import traceback
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Set, Tuple
 
 import devcluster as dc
 
@@ -17,7 +17,7 @@ UnixAddr = str
 
 def read_addr_spec(
     spec: str,
-) -> Tuple[Optional[TCPAddr], Optional[UnixAddr]]:
+) -> Tuple[TCPAddr | None, UnixAddr | None]:
     assert spec
     addr = None
     sock = None
@@ -80,7 +80,7 @@ class OneshotCB:
     """
 
     def __init__(self, quit_cb: Callable[[], None]) -> None:
-        self.first_target = None  # type: Optional[int]
+        self.first_target: int | None = None
         self.up = False
         self.failing = False
         self.quit_cb = quit_cb
@@ -178,14 +178,14 @@ class Server:
         listeners: List[str],
         quiet: bool = False,
         oneshot: bool = False,
-        initial_target_stage: Optional[str] = None,
+        initial_target_stage: str | None = None,
     ) -> None:
         self.config = config
         self.poll = dc.Poll()
 
         # map of fd's to socket objects
         self.listeners = {}
-        self.clients = set()  # type: Set[Connection]
+        self.clients: Set[Connection] = set()
 
         for spec in listeners:
             l = listener_from_spec(spec)
@@ -442,7 +442,7 @@ class ConsoleClient:
 
         signal.signal(signal.SIGWINCH, _sigwinch_handler)
 
-        self.tracebacks = []  # type: List[List[str]]
+        self.tracebacks: List[List[str]] = []
 
         # Write a traceback to console output on SIGUSR1 (10)
         def _traceback_signal(signum: Any, frame: Any) -> None:
@@ -475,7 +475,7 @@ class ConsoleClient:
                     # SIGUSR1, or "print me a stack trace"
                     for t in self.tracebacks:
                         self.logger.log("\n".join(t))
-                    self.tracbacks = []  # type: List[List[str]]
+                    self.tracbacks: List[List[str]] = []
                 else:
                     raise ValueError(f"invalid value in Client.handle_pipe(): {c}")
         elif ev & dc.Poll.ERR_FLAGS:
@@ -499,7 +499,7 @@ class ConsoleClient:
     def set_target_or_restart(self, idx: int) -> None:
         self.server.write({"set_target_or_restart": idx})
 
-    def run_command(self, cmdstr: str) -> None:
+    def run_command(self, cmdstr: str | List[str]) -> None:
         self.server.write({"run_cmd": cmdstr})
 
     def quit(self) -> None:
